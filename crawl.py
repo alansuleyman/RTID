@@ -1,10 +1,23 @@
 
+#!/usr/bin/env python
 
+import argparse
+import io
+import os
 import praw
 from credentials import *
 import json
 import sys
 import urllib
+
+
+SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+
+# Default path.
+DEFAULT_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'images')
+
+# Default image quality which is source
+DEFAULT_IMAGE_QUALITY = 6
 
 
 def get_content(content):
@@ -23,26 +36,31 @@ def get_original_image_url(content):
     return image_url
 
 
-def get_top_resolution_image_url(content):
+def get_top_resolution_image_url(content, image_quality):
     images = get_content(content)
     resolutions_list = images['resolutions']
-    top_resolution = resolutions_list[-1]
+    top_resolution = resolutions_list[image_quality]
     top_resolution_url = top_resolution['url']
     return top_resolution_url
 
 
-def download_image(id, image_url):
-    folder_name = './images/'
-    image_name = id + '.jpg'
+def download_image(id, image_url, image_quality):
+    image_name = id + '_' + str(image_quality) + '.jpg'
+
+    if not os.path.exists(DEFAULT_OUTPUT_DIR):
+        os.makedirs(DEFAULT_OUTPUT_DIR)
+
+    path = DEFAULT_OUTPUT_DIR + '/' + image_name
+
     try:
         print 'Downloading image...'
-        urllib.urlretrieve(image_url, folder_name + image_name)
+        urllib.urlretrieve(image_url, path)
     except IOError, err:
         print err
         sys.exit()
 
 
-def main():
+def main(image_quality):
 
     reddit = praw.Reddit(client_id=APP_CLIENT_ID,
                          client_secret=APP_CLIENT_SECRET,
@@ -53,12 +71,14 @@ def main():
 
     subreddit = reddit.subreddit('malelivingspace')
 
-    set_limit = 10
+    set_limit = 2
 
     hot_python = subreddit.hot(limit=set_limit)
 
-    for counter, submission in enumerate(hot_python):
-        if counter == 0:
+    for submission in hot_python:
+        if submission.stickied:
+            # do not crawl the stickied posts
+            # since they are just for subreddit rule explanation
             continue
         """ print 'downs: ' + str(submission.downs)
         print 'title: ' + submission.title
@@ -73,13 +93,29 @@ def main():
 
         preview_dumped = json.dumps(submission.preview)
 
-        image_url = get_top_resolution_image_url(preview_dumped)
+        if image_quality == DEFAULT_IMAGE_QUALITY:
+            image_url = get_original_image_url(preview_dumped)
+        elif image_quality >= 0 and image_quality <= 5:
+            image_url = get_top_resolution_image_url(
+                preview_dumped, image_quality)
+        else:
+            print 'Invalid image quality. Please try between 0 and 5. Or leave it blank for source quality.'
+            sys.exit()
+
         print 'image_url: ' + image_url
 
-        download_image(str(submission.id), image_url)
+        download_image(str(submission.id), image_url, image_quality)
 
         print '----------------------'
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--image-quality', type=int, dest='image_quality',
+                        default=DEFAULT_IMAGE_QUALITY,
+                        help='Image download quality. Default quality is the source quality. '
+                             'It can be changed between 0 and 5. '
+                             '0 is the least quality and 4 is the top quality.')
+
+    args = parser.parse_args()
+    main(args.image_quality)
