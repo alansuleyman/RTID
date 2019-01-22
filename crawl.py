@@ -1,23 +1,25 @@
-
 #!/usr/bin/env python
 
+from credentials import *
 import argparse
 import io
 import os
 import praw
-from credentials import *
 import json
 import sys
 import urllib
-
+import datetime
+import time
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-# Default path.
-DEFAULT_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'images')
+MAIN_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'images')
 
-# Default image quality which is source
-DEFAULT_IMAGE_QUALITY = 6
+DEFAULT_SUBREDDIT = 'all'
+
+DEFAULT_POST_LIMIT = 10
+
+DEFAULT_MIN_UPVOTE = 1000
 
 
 def get_content(content):
@@ -44,23 +46,62 @@ def get_top_resolution_image_url(content, image_quality):
     return top_resolution_url
 
 
-def download_image(id, image_url, image_quality):
-    image_name = id + '_' + str(image_quality) + '.jpg'
+def download_image(id, image_url, subreddit_folder_path):
 
-    if not os.path.exists(DEFAULT_OUTPUT_DIR):
-        os.makedirs(DEFAULT_OUTPUT_DIR)
+    image_format = image_url.split("?")[0][-3:]
 
-    path = DEFAULT_OUTPUT_DIR + '/' + image_name
+    image_name = id + '.' + image_format
 
-    try:
-        print 'Downloading image...'
-        urllib.urlretrieve(image_url, path)
-    except IOError, err:
-        print err
-        sys.exit()
+    image_path = subreddit_folder_path + '/' + image_name
+
+    # if the image exist, do not download the image
+    if os.path.isfile(image_path):
+        pass
+    else:
+        # image does not exist, download it
+        try:
+            print 'Downloading image...'
+            urllib.urlretrieve(image_url, image_path)
+        except IOError, err:
+            print err
+            sys.exit()
 
 
-def main(image_quality):
+def creation_time(created_utc):
+    # ago dictionary holds the content's creation time
+    ago = {}
+
+    date = datetime.datetime.fromtimestamp(created_utc)
+    ago['year'] = date.year
+    ago['month'] = date.month
+    ago['day'] = date.day
+    ago['hour'] = date.hour
+    ago['minute'] = date.minute
+    ago['second'] = date.second
+
+    current_time = int(time.time())
+    hours = (current_time - created_utc)/3600
+    days = (current_time - created_utc)/86400
+    months = (current_time - created_utc)/2592000
+
+    if months == 0:
+        if days == 0:
+            print 'Created ' + str(hours) + ' hours ago.'
+        else:
+            print 'Created ' + str(days) + ' days ago.'
+    else:
+        print 'Created ' + str(months) + ' months ago.'
+
+    return hours
+
+
+def main(subreddit_name, post_limit, min_upvote):
+
+    # if the subreddit image folder not exist, then create it
+    subreddit_folder_path = MAIN_OUTPUT_DIR + '/' + subreddit_name
+
+    if not os.path.exists(subreddit_folder_path):
+        os.makedirs(subreddit_folder_path)
 
     reddit = praw.Reddit(client_id=APP_CLIENT_ID,
                          client_secret=APP_CLIENT_SECRET,
@@ -69,53 +110,50 @@ def main(image_quality):
                          user_agent=APP_NAME
                          )
 
-    subreddit = reddit.subreddit('malelivingspace')
+    subreddit = reddit.subreddit(subreddit_name)
 
-    set_limit = 2
-
-    hot_python = subreddit.hot(limit=set_limit)
+    hot_python = subreddit.hot(limit=post_limit)
 
     for submission in hot_python:
+
+        # check whether the post has image preview or not
+        try:
+            preview = json.dumps(submission.preview)
+        except (TypeError, AttributeError):
+            print 'Preview not found. '
+            print '----------------------'
+            continue
+
         if submission.stickied:
             # do not crawl the stickied posts
             # since they are just for subreddit rule explanation
             continue
-        """ print 'downs: ' + str(submission.downs)
-        print 'title: ' + submission.title
-        print 'likes: ' + str(submission.likes)
-        # print 'media: ' + submission.media
-        print 'score: ' + str(submission.score)
-        print 'ups: ' + str(submission.ups)
-        print 'upvote: ' + str(submission.upvote)
-        print 'view_count: ' + str(submission.view_count) """
 
-        print 'title: ' + submission.title
+        # download the images which have more than 1k upvote
+        if submission.ups > min_upvote:
 
-        preview_dumped = json.dumps(submission.preview)
+            creation_time(int(submission.created_utc))
+            print 'Title: ' + submission.title
+            print 'Ups: ' + str(submission.ups)
 
-        if image_quality == DEFAULT_IMAGE_QUALITY:
-            image_url = get_original_image_url(preview_dumped)
-        elif image_quality >= 0 and image_quality <= 5:
-            image_url = get_top_resolution_image_url(
-                preview_dumped, image_quality)
-        else:
-            print 'Invalid image quality. Please try between 0 and 5. Or leave it blank for source quality.'
-            sys.exit()
+            image_url = get_original_image_url(preview)
 
-        print 'image_url: ' + image_url
-
-        download_image(str(submission.id), image_url, image_quality)
-
-        print '----------------------'
+            download_image(str(submission.id), image_url,
+                           subreddit_folder_path)
+            print '----------------------'
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image-quality', type=int, dest='image_quality',
-                        default=DEFAULT_IMAGE_QUALITY,
-                        help='Image download quality. Default quality is the source quality. '
-                             'It can be changed between 0 and 5. '
-                             '0 is the least quality and 4 is the top quality.')
+    parser.add_argument('--subreddit', type=str, dest='subreddit_name',
+                        default=DEFAULT_SUBREDDIT,
+                        help='Which subreddit to crawl')
+    parser.add_argument('--post-limit', type=int, dest='post_limit',
+                        default=DEFAULT_POST_LIMIT,
+                        help='Number of posts to crawl.')
+    parser.add_argument('--min-upvote', type=int, dest='min_upvote',
+                        default=DEFAULT_MIN_UPVOTE,
+                        help='Minimum number of upvote to filter.')
 
     args = parser.parse_args()
-    main(args.image_quality)
+    main(args.subreddit_name, args.post_limit, args.min_upvote)
