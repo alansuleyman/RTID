@@ -7,9 +7,6 @@ import io
 import os
 import praw
 import json
-import sys
-import urllib
-import datetime
 import time
 import csv
 
@@ -46,55 +43,6 @@ def get_top_resolution_image_url(content, image_quality):
     top_resolution = resolutions_list[image_quality]
     top_resolution_url = top_resolution['url']
     return top_resolution_url
-
-
-def download_image(id, image_url, subreddit_folder_path):
-
-    image_format = image_url.split("?")[0][-3:]
-
-    image_name = id + '.' + image_format
-
-    image_path = subreddit_folder_path + '/' + image_name
-
-    # if the image exist, do not download the image
-    if os.path.isfile(image_path):
-        pass
-    else:
-        # image does not exist, download it
-        try:
-            print 'Downloading image...'
-            urllib.urlretrieve(image_url, image_path)
-        except IOError, err:
-            print err
-            sys.exit()
-
-
-def creation_time(created_utc):
-    # ago dictionary holds the content's creation time
-    ago = {}
-
-    date = datetime.datetime.fromtimestamp(created_utc)
-    ago['year'] = date.year
-    ago['month'] = date.month
-    ago['day'] = date.day
-    ago['hour'] = date.hour
-    ago['minute'] = date.minute
-    ago['second'] = date.second
-
-    current_time = int(time.time())
-    hours = (current_time - created_utc)/3600
-    days = (current_time - created_utc)/86400
-    months = (current_time - created_utc)/2592000
-
-    if months == 0:
-        if days == 0:
-            print 'Created ' + str(hours) + ' hours ago.'
-        else:
-            print 'Created ' + str(days) + ' days ago.'
-    else:
-        print 'Created ' + str(months) + ' months ago.'
-
-    return hours
 
 
 def main(subreddit_name, post_limit, min_upvote):
@@ -145,16 +93,17 @@ def main(subreddit_name, post_limit, min_upvote):
                 content_rows.append([content.id, content.subreddit, content.upvote, content.title,
                                      content.content_created_utc, content.content_retrieved_utc, content.preview_image_url])
 
-                # download_image(str(submission.id), image_url, subreddit_folder_path)
+                content.download_image(subreddit_folder_path)
 
                 print str(counter)
                 print 'Title: ' + content.title
                 print 'Ups: ' + str(content.upvote)
                 print 'Content created: ' + content.content_created_utc
+                content.print_creation_time()
                 print '----------------------'
 
     # save collected data to csv
-    with open('contents.csv', 'w') as csvfile:
+    with open(subreddit_name + '_contents.csv', 'w') as csvfile:
         label_row = ['id', 'subreddit', 'upvote', 'title',
                      'created_utc', 'retrieved_utc', 'image_url', '']
         writer = csv.writer(csvfile, delimiter=',')
