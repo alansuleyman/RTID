@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+from multiprocessing.pool import ThreadPool
+from urllib2 import urlopen
+import urllib
 import datetime
 import time
 import os
-import sys
-import urllib
 import sys
 
 # Setting the system default encoding as utf-8, so that all strings are encoded using that.
