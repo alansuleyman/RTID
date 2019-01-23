@@ -27,31 +27,29 @@ DEFAULT_NUM_OF_THREAD = 1
 image_subreddit_folder_path = ''
 
 
-def download_images_using_thread(urls_list):
+def download_images(urls_list):
 
     global image_subreddit_folder_path
 
+    # get the format of the image. E.g. jpg, png etc.
     image_format = urls_list[0].split(
         "?")[0][::-1].split('.')[0][::-1]
 
+    # image name is image's id + image format. E.g aiw966.jpg
     image_name = urls_list[1] + '.' + image_format
 
+    # folder where the image will be saved.
+    # Images will be saved under input subreddit folder
     image_path = image_subreddit_folder_path + '/' + image_name
-
-    # time.sleep(1)
 
     # if the image exist, do not download the image
     if os.path.isfile(image_path):
         print 'Image already exists.'
         pass
     else:
-        # image does not exist, download it
         try:
-            print str(os.getpid()) + ' working on ' + \
-                image_name + ' downloading image...'
+            # image does not exist, download it
             urllib.urlretrieve(urls_list[0], image_path)
-            print str(os.getpid()) + ' downloaded ' + \
-                image_name + "!!!!!!!!!"
 
         except IOError, err:
             print err
@@ -72,6 +70,8 @@ def get_original_image_url(content):
     image_url = image_url_tree['url']
     return image_url
 
+# TODO use this function on later features
+
 
 def get_top_resolution_image_url(content, image_quality):
     images = get_content(content)
@@ -79,6 +79,8 @@ def get_top_resolution_image_url(content, image_quality):
     top_resolution = resolutions_list[image_quality]
     top_resolution_url = top_resolution['url']
     return top_resolution_url
+
+# check whether input subreddit exist or not
 
 
 def check_subreddit_exists(reddit, sub):
@@ -126,6 +128,7 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
     url_list = []
 
     start = time.time()
+
     for counter, submission in enumerate(hot_python):
 
         # check whether the post has image preview or not
@@ -164,13 +167,17 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
                 content.print_creation_time()
                 print '----------------------'
 
-                # Create url array which contains image url, image id and image's subreddit
+                # Create url array which contains image url, image id
                 urls.append(content.preview_image_url)
                 urls.append(str(content.id))
             url_list.append(urls)
+
     print 'Using ' + str(thread_count) + ' thread.'
+    # create pool with the thread_count process
     pool = Pool(processes=thread_count)
-    pool.map(download_images_using_thread, url_list)
+
+    # perform download_images function on each url_list array content
+    pool.map(download_images, url_list)
 
     end = time.time()
 
