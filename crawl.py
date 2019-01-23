@@ -92,6 +92,34 @@ def check_subreddit_exists(reddit, sub):
     return exists
 
 
+def write_to_csv(csvname, row_list):
+
+    # if file does not exist, create it and set the field names
+    if not os.path.exists(csvname):
+        fields = ['id', 'subreddit', 'upvote', 'title',
+                  'created_utc', 'retrieved_utc', 'image_url', '']
+        with open(csvname, 'a') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow(fields)
+
+    with open(csvname, 'r') as csvfile:
+        # read the file into a variable
+        s = csvfile.read()
+
+        # check to see if each list item is in the file, if not save it
+        missing = []
+        for row in row_list:
+            if row[0] not in s:
+                missing.append(row)
+
+    # Write the missing rows to the file
+    if missing:
+        print 'Missing rows exist.'
+        with open(csvname, 'a+') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerows(missing)
+
+
 def main(subreddit_name, post_limit, min_upvote, thread_count):
 
     reddit = praw.Reddit(client_id=APP_CLIENT_ID,
@@ -170,7 +198,7 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
                 # Create url array which contains image url, image id
                 urls.append(content.preview_image_url)
                 urls.append(str(content.id))
-            url_list.append(urls)
+                url_list.append(urls)
 
     print 'Using ' + str(thread_count) + ' thread.'
     # create pool with the thread_count process
@@ -181,15 +209,18 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
 
     end = time.time()
 
-    print 'Downloading took ' + str(int(end - start)) + ' seconds.'
+    print 'Took ' + str(int(end - start)) + ' seconds.'
 
-    # save collected data to csv
+    csv_name = csv_subreddit_folder_path + '/' + subreddit_name + '_contents.csv'
+    write_to_csv(csv_name, content_rows)
+
+    """ # save collected data to csv
     with open(csv_subreddit_folder_path + '/' + subreddit_name + '_contents.csv', 'w') as csvfile:
         label_row = ['id', 'subreddit', 'upvote', 'title',
                      'created_utc', 'retrieved_utc', 'image_url', '']
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(label_row)
-        writer.writerows(content_rows)
+        writer.writerows(content_rows) """
 
 
 if __name__ == '__main__':
