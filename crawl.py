@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from credentials import *
+from content import Content
 import argparse
 import io
 import os
@@ -10,6 +11,7 @@ import sys
 import urllib
 import datetime
 import time
+import csv
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -114,33 +116,50 @@ def main(subreddit_name, post_limit, min_upvote):
 
     hot_python = subreddit.hot(limit=post_limit)
 
-    for submission in hot_python:
+    content_rows = []
+
+    for counter, submission in enumerate(hot_python):
 
         # check whether the post has image preview or not
         try:
             preview = json.dumps(submission.preview)
         except (TypeError, AttributeError):
-            print 'Preview not found. '
+            print str(counter) + ', Preview not found. '
             print '----------------------'
             continue
 
-        if submission.stickied:
-            # do not crawl the stickied posts
-            # since they are just for subreddit rule explanation
-            continue
+        # do not crawl the stickied posts
+        # since they are just for subreddit rule explanation
+        if not submission.stickied:
 
-        # download the images which have more than 1k upvote
-        if submission.ups > min_upvote:
+            # download the images which have more than 1k upvote
+            if submission.ups > min_upvote:
 
-            creation_time(int(submission.created_utc))
-            print 'Title: ' + submission.title
-            print 'Ups: ' + str(submission.ups)
+                image_url = get_original_image_url(preview)
 
-            image_url = get_original_image_url(preview)
+                # create content object
+                content = Content(submission.id, submission.subreddit_name_prefixed, submission.title,
+                                  submission.ups, submission.created_utc, time.time(), image_url)
 
-            download_image(str(submission.id), image_url,
-                           subreddit_folder_path)
-            print '----------------------'
+                # save contents
+                content_rows.append([content.id, content.subreddit, content.upvote, content.title,
+                                     content.content_created_utc, content.content_retrieved_utc, content.preview_image_url])
+
+                # download_image(str(submission.id), image_url, subreddit_folder_path)
+
+                print str(counter)
+                print 'Title: ' + content.title
+                print 'Ups: ' + str(content.upvote)
+                print 'Content created: ' + content.content_created_utc
+                print '----------------------'
+
+    # save collected data to csv
+    with open('contents.csv', 'w') as csvfile:
+        label_row = ['id', 'subreddit', 'upvote', 'title',
+                     'created_utc', 'retrieved_utc', 'image_url', '']
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(label_row)
+        writer.writerows(content_rows)
 
 
 if __name__ == '__main__':
