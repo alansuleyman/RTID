@@ -3,12 +3,17 @@ import time
 import os
 import sys
 import urllib
+import sys
+
+# Setting the system default encoding as utf-8, so that all strings are encoded using that.
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 
 class Content:
     def __init__(self, id, subreddit, title, upvote, content_created_utc, content_retrieved_utc, preview_image_url):
         self.id = id
-        self.subreddit = subreddit
+        self.subreddit = subreddit.split('/')[1]
         self.title = title
         self.upvote = upvote
         self.content_created_utc = content_created_utc
@@ -37,11 +42,11 @@ class Content:
 
         if months == 0:
             if days == 0:
-                print 'Created ' + str(hours) + ' hours ago.'
+                print 'Content is created ' + str(hours) + ' hours ago.'
             else:
-                print 'Created ' + str(days) + ' days ago.'
+                print 'Content is created ' + str(days) + ' days ago.'
         else:
-            print 'Created ' + str(months) + ' months ago.'
+            print 'Content is created ' + str(months) + ' months ago.'
 
     def download_image(self, subreddit_folder_path):
 
@@ -64,6 +69,7 @@ class Content:
 
         # if the image exist, do not download the image
         if os.path.isfile(image_path):
+            print 'Image already exists.'
             pass
         else:
             # image does not exist, download it

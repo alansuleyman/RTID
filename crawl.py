@@ -6,13 +6,17 @@ import argparse
 import io
 import os
 import praw
+from prawcore import NotFound
 import json
 import time
 import csv
+import sys
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-MAIN_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'images')
+MAIN_IMAGE_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'images')
+
+MAIN_CSV_OUTPUT_DIR = os.path.join(SCRIPT_PATH, 'csv')
 
 DEFAULT_SUBREDDIT = 'all'
 
@@ -45,13 +49,16 @@ def get_top_resolution_image_url(content, image_quality):
     return top_resolution_url
 
 
+def check_subreddit_exists(reddit, sub):
+    exists = True
+    try:
+        reddit.subreddits.search_by_name(sub, exact=True)
+    except NotFound:
+        exists = False
+    return exists
+
+
 def main(subreddit_name, post_limit, min_upvote):
-
-    # if the subreddit image folder not exist, then create it
-    subreddit_folder_path = MAIN_OUTPUT_DIR + '/' + subreddit_name
-
-    if not os.path.exists(subreddit_folder_path):
-        os.makedirs(subreddit_folder_path)
 
     reddit = praw.Reddit(client_id=APP_CLIENT_ID,
                          client_secret=APP_CLIENT_SECRET,
@@ -59,6 +66,24 @@ def main(subreddit_name, post_limit, min_upvote):
                          password=REDDIT_PW,
                          user_agent=APP_NAME
                          )
+
+    sub_exist = check_subreddit_exists(reddit, subreddit_name)
+
+    if not sub_exist:
+        print 'r/' + subreddit_name + ' doesn\'t exist.'
+        sys.exit()
+
+    image_subreddit_folder_path = MAIN_IMAGE_OUTPUT_DIR + '/' + subreddit_name
+
+    # if the subreddit image folder does not exist, create it
+    if not os.path.exists(image_subreddit_folder_path):
+        os.makedirs(image_subreddit_folder_path)
+
+    csv_subreddit_folder_path = MAIN_CSV_OUTPUT_DIR + '/' + subreddit_name
+
+    # if the subreddit csv folder does not exist, create it
+    if not os.path.exists(csv_subreddit_folder_path):
+        os.makedirs(csv_subreddit_folder_path)
 
     subreddit = reddit.subreddit(subreddit_name)
 
@@ -93,7 +118,7 @@ def main(subreddit_name, post_limit, min_upvote):
                 content_rows.append([content.id, content.subreddit, content.upvote, content.title,
                                      content.content_created_utc, content.content_retrieved_utc, content.preview_image_url])
 
-                content.download_image(subreddit_folder_path)
+                content.download_image(image_subreddit_folder_path)
 
                 print str(counter)
                 print 'Title: ' + content.title
@@ -103,7 +128,7 @@ def main(subreddit_name, post_limit, min_upvote):
                 print '----------------------'
 
     # save collected data to csv
-    with open(subreddit_name + '_contents.csv', 'w') as csvfile:
+    with open(csv_subreddit_folder_path + '/' + subreddit_name + '_contents.csv', 'w') as csvfile:
         label_row = ['id', 'subreddit', 'upvote', 'title',
                      'created_utc', 'retrieved_utc', 'image_url', '']
         writer = csv.writer(csvfile, delimiter=',')
