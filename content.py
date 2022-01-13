@@ -1,21 +1,24 @@
 #!/usr/bin/env python
 from multiprocessing.pool import ThreadPool
-from urllib2 import urlopen
+from urllib.request import urlopen
 import urllib
-import datetime
 import time
 import os
-import sys
-
-# Setting the system default encoding as utf-8, so that all strings are encoded using that.
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 
 class Content:
-    def __init__(self, id, subreddit, title, upvote, content_created_utc, content_retrieved_utc, preview_image_url):
+    def __init__(
+        self,
+        id,
+        subreddit,
+        title,
+        upvote,
+        content_created_utc,
+        content_retrieved_utc,
+        preview_image_url,
+    ):
         self.id = id
-        self.subreddit = subreddit.split('/')[1]
+        self.subreddit = subreddit.split("/")[1]
         self.title = title
         self.upvote = upvote
         self.content_created_utc = content_created_utc
@@ -35,20 +38,19 @@ class Content:
     def print_creation_time(self):
 
         current_time = int(time.time())
-        time_difference = current_time - \
-            int(self.content_created_utc_timestamp)
+        time_difference = current_time - int(self.content_created_utc_timestamp)
 
-        hours = time_difference/3600
-        days = time_difference/86400
-        months = time_difference/2592000
+        hours = time_difference / 3600
+        days = time_difference / 86400
+        months = time_difference / 2592000
 
         if months == 0:
             if days == 0:
-                print 'Content is created ' + str(hours) + ' hours ago.'
+                print(f"Content is created {hours} hours ago.")
             else:
-                print 'Content is created ' + str(days) + ' days ago.'
+                print(f"Content is created {days} days ago.")
         else:
-            print 'Content is created ' + str(months) + ' months ago.'
+            print(f"Content is created {months} months ago.")
 
     def download_image(self, subreddit_folder_path):
 
@@ -62,22 +64,21 @@ class Content:
         # Gives this array ['gpj', '12c09l31erix9/ti', 'dder', 'weiverp//:sptth']
         # Take the first index 'gpj' and reverse it 'jpg'
 
-        image_format = self.preview_image_url.split(
-            "?")[0][::-1].split('.')[0][::-1]
+        image_format = self.preview_image_url.split("?")[0][::-1].split(".")[0][::-1]
 
-        image_name = self.id + '.' + image_format
+        image_name = self.id + "." + image_format
 
-        image_path = subreddit_folder_path + '/' + image_name
+        image_path = subreddit_folder_path + "/" + image_name
 
         # if the image exist, do not download the image
         if os.path.isfile(image_path):
-            print 'Image already exists.'
+            print("Image already exists.")
             pass
         else:
             # image does not exist, download it
             try:
-                print 'Downloading image...'
+                print("Downloading image...")
                 urllib.urlretrieve(self.preview_image_url, image_path)
-            except IOError, err:
-                print err
-                sys.exit()
+            except IOError as err:
+                print(err)
+                exit(1)
