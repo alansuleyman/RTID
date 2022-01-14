@@ -12,6 +12,8 @@ import time
 import csv
 import sys
 import urllib
+import urllib.request
+from pathlib import Path
 from multiprocessing import Pool
 
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -24,22 +26,19 @@ DEFAULT_POST_LIMIT = 10
 DEFAULT_MIN_UPVOTE = 1000
 DEFAULT_NUM_OF_THREAD = 1
 
-image_subreddit_folder_path = ""
+
+class ImageInfo:
+    def __init__(self, write_path, url, name):
+        self.write_path = write_path
+        self.url = url
+        self.name = name
 
 
-def download_images(urls_list):
-
-    global image_subreddit_folder_path
-
-    # get the format of the image. E.g. jpg, png etc.
-    image_format = urls_list[0].split("?")[0][::-1].split(".")[0][::-1]
-
-    # image name is image's id + image format. E.g aiw966.jpg
-    image_name = urls_list[1] + "." + image_format
+def download_images(img_info: ImageInfo):
 
     # folder where the image will be saved.
     # Images will be saved under input subreddit folder
-    image_path = image_subreddit_folder_path + "/" + image_name
+    image_path = os.path.join(img_info.write_path, img_info.name)
 
     # if the image exist, do not download the image
     if os.path.isfile(image_path):
@@ -48,7 +47,7 @@ def download_images(urls_list):
     else:
         try:
             # image does not exist, download it
-            urllib.urlretrieve(urls_list[0], image_path)
+            urllib.request.urlretrieve(img_info.url, image_path)
 
         except IOError as err:
             print(err)
@@ -146,7 +145,6 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
         print("r/{subreddit_name} does not exist.")
         sys.exit()
 
-    global image_subreddit_folder_path
     image_subreddit_folder_path = os.path.join(MAIN_IMAGE_OUTPUT_DIR, subreddit_name)
 
     # if the subreddit image folder does not exist, create it
@@ -168,6 +166,7 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
 
     start = time.time()
 
+    img_list = []
     for counter, submission in enumerate(hot_python):
 
         # check whether the post has image preview or not
@@ -184,8 +183,6 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
 
             # download the images which have more than 1k upvote
             if submission.ups > min_upvote:
-                # urls array keeps the image url and the image id
-                urls = []
 
                 image_url = get_original_image_url(preview)
 
@@ -222,32 +219,40 @@ def main(subreddit_name, post_limit, min_upvote, thread_count):
                 content.print_creation_time()
                 print("----------------------")
 
-                # Create url array which contains image url, image id
-                urls.append(content.preview_image_url)
-                urls.append(str(content.id))
-                url_list.append(urls)
+                # get the format of the image. E.g. jpg, png etc.
+                image_format = content.preview_image_url.split("?")[0][::-1].split(".")[
+                    0
+                ][::-1]
+                # image name is image's id + image format. E.g aiw966.jpg
+                image_name = str(content.id) + "." + image_format
+
+                img_info = ImageInfo(
+                    image_subreddit_folder_path, content.preview_image_url, image_name
+                )
+                img_list.append(img_info)
 
     print(f"Using {thread_count} thread.")
-    # create pool with the thread_count process
-    pool = Pool(processes=thread_count)
 
-    # perform download_images function on each url_list array content
-    pool.map(download_images, url_list)
+    # create pool with the thread_count process
+    with Pool(processes=thread_count) as pool:
+        # perform download_images function on each url_list array content
+
+        pool.map(download_images, img_list)
 
     elapsed_time_sec = time.time() - start
 
     print(f"Took {int(elapsed_time_sec)} seconds.")
 
-    csv_name = os.path.join(csv_subreddit_folder_path, subreddit_name, "_contents.csv")
+    csv_name = csv_subreddit_folder_path + "_contents.csv"
     write_to_csv(csv_name, content_rows)
 
-    """ # save collected data to csv
-    with open(csv_subreddit_folder_path + '/' + subreddit_name + '_contents.csv', 'w') as csvfile:
-        label_row = ['id', 'subreddit', 'upvote', 'title',
-                     'created_utc', 'retrieved_utc', 'image_url', '']
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(label_row)
-        writer.writerows(content_rows) """
+    # # save collected data to csv
+    # with open(csv_subreddit_folder_path + '/' + subreddit_name + '_contents.csv', 'w') as csvfile:
+    #     label_row = ['id', 'subreddit', 'upvote', 'title',
+    #                  'created_utc', 'retrieved_utc', 'image_url', '']
+    #     writer = csv.writer(csvfile, delimiter=',')
+    #     writer.writerow(label_row)
+    #     writer.writerows(content_rows)
 
 
 if __name__ == "__main__":

@@ -68,7 +68,7 @@ class Content:
 
         image_name = self.id + "." + image_format
 
-        image_path = subreddit_folder_path + "/" + image_name
+        image_path = os.path.join(subreddit_folder_path, image_name)
 
         # if the image exist, do not download the image
         if os.path.isfile(image_path):
