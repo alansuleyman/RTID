@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from creds.credentials import Credentials
-from content import Content
+from src.content import Content
 import argparse
 import io
 import os
