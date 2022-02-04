@@ -1,5 +1,6 @@
 from utils import *
 from rtid_out_info import RtidOutInfo
+from content_info import ContentInfo
 from datetime import datetime
 from os import path, makedirs
 import json
@@ -57,24 +58,10 @@ class RTID(Logger):
 			self.log.warning("Preview not found, skipping current post...")
 		return preview
 
-	def get_preview_img(self, preview: str):
-		preview_json_obj = json.loads(preview)
-		imgs_list = preview_json_obj["images"]
-		preview_img = imgs_list[0]
-		return preview_img
-
-	def get_original_img_url(self, preview: str) -> str:
-		preview_img = self.get_preview_img(preview)
-		source_list = preview_img["source"]
-		img_url_decode = json.dumps(source_list)
-		img_url_json_obj = json.loads(img_url_decode)
-		img_url = img_url_json_obj["url"]
-		return img_url
-
-	def get_hot_submission_previews(self):
+	def get_hot_submission_contents(self):
 		# Get the hot submissions which have more than given minimum number of upvote
 		# to filter and given number of posts to look
-		hot_previews = []
+		hot_submission_contents = []
 		hot_submissions = self.subreddit_instance.hot(limit=self.config.post_limit)
 		for submission in hot_submissions:
 			# Skip the stickied posts since they are mostly just for subreddit rule explanation
@@ -87,14 +74,15 @@ class RTID(Logger):
 				continue
 
 			if submission.ups > self.config.min_upvote:
-				hot_previews.append(preview)
-		return hot_previews
+				content_info = ContentInfo(submission=submission)
+				hot_submission_contents.append(content_info)
+				
+		return hot_submission_contents
 
 	def run(self):
-		hot_previews = self.get_hot_submission_previews()
-		for preview in hot_previews:
-			img_url = self.get_original_img_url(preview)
-			print(f"image url: {img_url}")
+		hot_submission_contents = self.get_hot_submission_contents()
+		for content in hot_submission_contents:
+			content.print_content_info()
 
 		
 		print("run...")
