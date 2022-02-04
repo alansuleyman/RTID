@@ -1,7 +1,7 @@
 from utils import *
 from rtid_out_info import RtidOutInfo
 from rtid_config import RTIDConfig
-from content_manager import ContentManager 
+from content_manager import ContentManager
 from datetime import datetime
 from os import path, makedirs
 import json
@@ -49,6 +49,9 @@ class RTID(Logger):
 		hot_submission_contents = self.content_manager.get_hot_submission_contents()
 		for content in hot_submission_contents:
 			content.print_content_info()
+			img_download_path = path.join(self.rtid_out_info.subreddit_download_path, content.content_full_name)
+			self.log.info(f"Downloading [{content.title}] to path [{img_download_path}] . Image url: {content.content_url}")
+			self.content_manager.download_img(img_download_path=img_download_path, img_url=content.content_url)
 
-		
-		print("Finished...")
+		self.log.info("Finished.")
+

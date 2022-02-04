@@ -1,8 +1,10 @@
 from content_info import ContentInfo
 import json
 import praw
+from os import path
 from rtid_config import RTIDConfig
 from utils import *
+import urllib.request
 
 class ContentManager(Logger):
 	def __init__(self, subreddit_instance, rtid_config: RTIDConfig):
@@ -38,3 +40,15 @@ class ContentManager(Logger):
 				hot_submission_contents.append(content_info)
 				
 		return hot_submission_contents
+
+	def download_img(self, img_download_path: str, img_url: str):
+
+		# if the image exist, do not download the image
+		if path.isfile(img_download_path):
+			self.log.info(f"Image name {img_download_path} already exists.")
+		else:
+			try:
+				# image does not exist, download it
+				urllib.request.urlretrieve(img_url, img_download_path)
+			except IOError as err:
+				self.log.error(err)
