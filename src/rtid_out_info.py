@@ -15,7 +15,7 @@ class RtidOutInfo(Logger):
 
 	def CreateSubredditDownloadDir(self):
 		now = datetime.now()
-		date_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+		date_string = now.strftime("%d_%m_%Y")
 		self.subreddit_download_path = path.join(self.download_dir_path, "RTID_Downloads", self.subreddit_name, date_string)
 
 		try:
