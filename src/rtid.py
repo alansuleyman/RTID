@@ -15,20 +15,11 @@ class RTIDConfig:
 class RTID(Logger):
 	def __init__(self, rtid_config: RTIDConfig):
 		super().__init__()
-		now = datetime.now()
-		date_string = now.strftime("%d_%m_%Y_%H_%M_%S")
-		self.out_dir = path.join(RtidOutInfo.OUT_DIR,"RTID_Downloads",date_string)
-		try:
-			makedirs(self.out_dir, exist_ok=False)
-			self.log.info(f"Directory {self.out_dir} has been created")
-		except OSError:
-			self.log.info(f"Directory {self.out_dir} could not be created")
-
-		
 		self.config = rtid_config
 		self.reddit = None
 		self.subreddit = None
 		self.init()
+		self.rtid_out_info = RtidOutInfo(self.config.subreddit_name)
 
 	def init(self):
 		self.log.info("Starting RTID")
