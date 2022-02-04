@@ -48,7 +48,7 @@ class RTID(Logger):
 			print(f"r/{self.config.subreddit_name} does not exist.")
 			sys.exit(1)
 
-	def get_preview(self, submission) -> bool:
+	def get_preview(self, submission) -> str:
 		# check whether the post has image preview or not
 		preview = None
 		try:
@@ -56,6 +56,20 @@ class RTID(Logger):
 		except (TypeError, AttributeError):
 			self.log.warning("Preview not found, skipping current post...")
 		return preview
+
+	def get_preview_img(self, preview: str):
+		preview_json_obj = json.loads(preview)
+		imgs_list = preview_json_obj["images"]
+		preview_img = imgs_list[0]
+		return preview_img
+
+	def get_original_img_url(self, preview: str) -> str:
+		preview_img = self.get_preview_img(preview)
+		source_list = preview_img["source"]
+		img_url_decode = json.dumps(source_list)
+		img_url_json_obj = json.loads(img_url_decode)
+		img_url = img_url_json_obj["url"]
+		return img_url
 
 	def get_hot_submission_previews(self):
 		# Get the hot submissions which have more than given minimum number of upvote
@@ -78,4 +92,9 @@ class RTID(Logger):
 
 	def run(self):
 		hot_previews = self.get_hot_submission_previews()
+		for preview in hot_previews:
+			img_url = self.get_original_img_url(preview)
+			print(f"image url: {img_url}")
+
+		
 		print("run...")
