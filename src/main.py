@@ -2,7 +2,8 @@
 
 import argparse
 import config
-from rtid import RTID, RTIDConfig
+from rtid_config import RTIDConfig
+from rtid import RTID
 
 
 if __name__ == "__main__":
