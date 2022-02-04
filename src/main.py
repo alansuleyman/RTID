@@ -2,15 +2,15 @@
 
 import argparse
 import config
-from rtid import RTID
+from rtid import RTID, RTIDConfig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--subreddit",
+        "--subreddit_name",
         type=str,
-        dest="subreddit",
+        dest="subreddit_name",
         default=config.DEFAULT_SUBREDDIT,
         help="Which subreddit to look",
     )
@@ -30,9 +30,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    rtid_config = {
-        "subreddit": args.subreddit,
-        "post_limit": args.post_limit,
-        "min_upvote": args.min_upvote,
-    }
+    rtid_config = RTIDConfig(args.subreddit_name, args.post_limit, args.min_upvote)
     rtid = RTID(rtid_config)
+    rtid.run()
