@@ -17,9 +17,11 @@ class RtidOutInfo(Logger):
 		now = datetime.now()
 		date_string = now.strftime("%d_%m_%Y")
 		self.subreddit_download_path = path.join(self.download_dir_path, self.subreddit_name, date_string)
-
+		if path.isdir(self.subreddit_download_path):
+			self.log.info(f"Directory {self.subreddit_download_path} already exists.")
+			return 
 		try:
-			makedirs(self.subreddit_download_path, exist_ok=False)
+			makedirs(self.subreddit_download_path, exist_ok=True)
 			self.log.info(f"Directory {self.subreddit_download_path} has been created")
 		except OSError:
 			self.log.info(f"Directory {self.subreddit_download_path} could not be created")

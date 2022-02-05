@@ -1,4 +1,4 @@
-from content_info import ContentInfo
+from content_info import ContentInfo, ContentType
 import json
 import praw
 from os import path
@@ -30,13 +30,15 @@ class ContentManager(Logger):
 			content_info = ContentInfo(submission=submission)
 			# Skip the stickied posts since they are mostly just for subreddit rule explanation
 			if submission.stickied:
-				self.log.info(f"Skipping stickied post {content_info.post_url}")
+				self.log.debug(f"Skipping stickied post {content_info.post_url}")
 				continue
-			if submission.ups < self.rtid_config.min_upvote:
+			if submission.score < self.rtid_config.min_upvote:
+				self.log.debug(f"Skipping submission with score {submission.score}")
 				continue
 
-			if get_preview(submission, content_info.post_url) is None:
+			if content_info.content_type != ContentType.IMAGE:
 				continue
+
 			hot_submission_contents.append(content_info)
 
 				
