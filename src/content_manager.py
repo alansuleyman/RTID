@@ -15,29 +15,30 @@ class ContentManager(Logger):
 	def get_hot_submission_contents(self):
 		# Get the hot submissions which have more than given minimum number of upvote
 		# to filter and given number of posts to look
-		def get_preview(submission) -> str:
+		def get_preview(submission, post_url) -> str:
 			# check whether the post has image preview or not
 			preview = None
 			try:
 				preview = json.dumps(submission.preview)
 			except (TypeError, AttributeError):
-				self.log.warning("Preview not found, skipping current post...")
+				self.log.warning(f"Preview not found, skipping current post {post_url}")
 			return preview
 
 		hot_submission_contents = []
 		hot_submissions = self.subreddit_instance.hot(limit=self.rtid_config.post_limit)
 		for submission in hot_submissions:
+			content_info = ContentInfo(submission=submission)
 			# Skip the stickied posts since they are mostly just for subreddit rule explanation
 			if submission.stickied:
-				self.log.info("Skipping stickied post...")
+				self.log.info(f"Skipping stickied post {content_info.post_url}")
 				continue
-			
-			if get_preview(submission) is None:
+			if submission.ups < self.rtid_config.min_upvote:
 				continue
 
-			if submission.ups > self.rtid_config.min_upvote:
-				content_info = ContentInfo(submission=submission)
-				hot_submission_contents.append(content_info)
+			if get_preview(submission, content_info.post_url) is None:
+				continue
+			hot_submission_contents.append(content_info)
+
 				
 		return hot_submission_contents
 

@@ -8,7 +8,7 @@ class RtidOutInfo(Logger):
 		super().__init__()
 		self.subreddit_name = subreddit_name
 		self.current_dir = path.dirname(path.abspath(__file__))
-		self.download_dir_name = "out"
+		self.download_dir_name = "RTID_Downloads"
 		self.download_dir_path = path.join(Path(self.current_dir).parent.absolute(), self.download_dir_name)
 		self.subreddit_download_path = None
 		self.CreateSubredditDownloadDir()
@@ -16,7 +16,7 @@ class RtidOutInfo(Logger):
 	def CreateSubredditDownloadDir(self):
 		now = datetime.now()
 		date_string = now.strftime("%d_%m_%Y")
-		self.subreddit_download_path = path.join(self.download_dir_path, "RTID_Downloads", self.subreddit_name, date_string)
+		self.subreddit_download_path = path.join(self.download_dir_path, self.subreddit_name, date_string)
 
 		try:
 			makedirs(self.subreddit_download_path, exist_ok=False)

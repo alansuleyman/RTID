@@ -1,6 +1,4 @@
-images/*
-out/
-*.csv
+RTID_Downloads/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
